@@ -1,9 +1,6 @@
 {
-  "build": [
-    "composer install",
-    "php artisan config:cache",
-    "npm install",
-    "npm run build"
-  ],
+  "build": {
+    "command": "composer install && php artisan config:cache && npm install && npm run build"
+  },
   "start": "php artisan serve --host=0.0.0.0 --port=$PORT"
 }
