@@ -1,0 +1,235 @@
+@use "bootstrap/scss/bootstrap";
+@import url(pages/login.scss);
+@import url(pages/profile.scss);
+:root {
+    /* Background Colors */
+    --primary-color: #f14a00;
+    --secondary-color: #643579;
+    --black-color: #000;
+    --white-color: #ffffff;
+    --gray-color: #575757;
+    --dark-blue-color-bg: #2e0055;
+
+    /* Text Settings */
+    --primary-font: "Inter", sans-serif;
+    --secondary-font: "Poppins", sans-serif;
+    --primary-text: var(--primary-color);
+    --text-black: var(--black-color);
+    --text-white: var(--white-color);
+}
+* {
+    text-decoration: none;
+    margin: 0;
+    padding: 0;
+    font-family: var(--primary-font);
+    font-size: 20px;
+}
+::-webkit-scrollbar {
+    width: 6px;
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--primary-color);
+}
+/* Remove Number Input Arrows */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+body {
+    background-color: var(--dark-blue-color-bg);
+    color: var(--white-color);
+    min-height: 100vh;
+    max-width: 100vw;
+    overflow-x: hidden;
+}
+.background-tools {
+    z-index: -1;
+    overflow: hidden;
+    .tool {
+        img {
+            width: 400px;
+            height: auto;
+            cursor: pointer;
+            transition: 0.3s ease-in-out;
+
+            &:hover {
+                transform: scale(1.1) rotate(10deg);
+            }
+        }
+    }
+    .ruler {
+        img {
+            position: absolute;
+            top: 5%;
+            left: -10%;
+        }
+    }
+
+    .pencil {
+        img {
+            position: absolute;
+            top: -5%;
+            right: -10%;
+        }
+    }
+
+    .calculator {
+        img {
+            position: absolute;
+            bottom: -5%;
+            right: -10%;
+        }
+    }
+
+    .clock {
+        img {
+            position: absolute;
+            bottom: -10%;
+            left: -10%;
+        }
+    }
+}
+@media (max-width: 910px) {
+    .background-tools {
+        display: none;
+    }
+}
+.nav-item {
+    .profile-photo {
+        width: 40px;
+        height: 40px;
+        object-fit: cover;
+        border: 2px solid var(--white-color);
+    }
+    .btn-custom {
+        margin-left: 40px;
+    }
+}
+@media (max-width: 610px) {
+    .nav-item {
+        .btn-custom {
+            padding: 5px 20px;
+            font-size: 20px;
+            margin-left: 10px;
+        }
+        span {
+            display: none;
+        }
+    }
+}
+.btn-custom {
+    padding: 10px 40px;
+    font-size: 25px;
+    font-family: var(--secondary-font);
+    color: var(--white-color);
+    font-weight: bolder;
+    transition: 0.5s ease;
+    &.btn-gray {
+        background-color: var(--gray-color);
+    }
+    &.btn-purple {
+        background-color: var(--secondary-color);
+    }
+    &.btn-orange {
+        background-color: var(--primary-color);
+    }
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+}
+.converter-box {
+    z-index: 1;
+    position: relative;
+    padding: 40px;
+    border-radius: 15px;
+    display: block;
+    width: 50vw;
+    max-width: 900px; /* Batas maksimal supaya tidak terlalu gede */
+    min-width: 400px;
+    transition: width 0.3s ease;
+}
+.convert-title {
+    font-family: var(--secondary-font);
+    font-size: 50px;
+    font-weight: 900;
+    color: var(--primary-color);
+    span {
+        display: inline-block;
+        select {
+            background: transparent;
+            -webkit-appearance: none; /* Untuk Safari dan Chrome */
+            -moz-appearance: none; /* Untuk Firefox */
+            appearance: none; /* Untuk browser modern lainnya */
+            color: white;
+            border: none;
+            font-weight: 900;
+            background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 10 10"%3E%3Cpath fill="%23ffffff" d="M5 7L1 3h8L5 7z"%3E%3C/path%3E%3C/svg%3E'); /* Gambar panah putih */
+            background-repeat: no-repeat;
+            background-position: right 10px center; /* Posisi panah */
+            font-size: 50px;
+            transition: width 0.3s ease;
+            option {
+                color: black; // saat dropdown terbuka, option tetap hitam untuk keterbacaan
+            }
+
+            &:focus {
+                outline: none;
+                box-shadow: none;
+            }
+            &::after {
+                content: "\2193"; /* Unicode untuk tanda panah bawah */
+                font-size: 30px;
+                color: white;
+                position: absolute;
+                right: 10px;
+                top: 50%;
+                transform: translateY(-50%); /* Menjaga posisi tetap di tengah */
+            }
+        }
+    }
+}
+.convert-form {
+    .form-label {
+        &:focus {
+            outline: none;
+        }
+    }
+    .form-control {
+        width: 60%;
+        &:focus {
+            outline: none; // Menghilangkan border saat fokus
+            box-shadow: none; // Menghilangkan efek bayangan saat fokus
+            border: none; // Menghilangkan border saat fokus
+        }
+    }
+    .form-select {
+        width: 40%;
+        &:focus {
+            outline: none; // Menghilangkan border saat fokus
+            box-shadow: none; // Menghilangkan efek bayangan saat fokus
+            border: none; // Menghilangkan border saat fokus
+        }
+    }
+}
+.convert-text {
+    z-index: 1;
+    position: relative;
+}
+.history {
+    background-color: gray;
+    .result-convert {
+        border-bottom: 1px solid var(--black-color);
+    }
+}
+
+.login-image {
+    width: 50vw;
+    height: 100vh;
+    background-color: var(--primary-color);
+}
+
+
+

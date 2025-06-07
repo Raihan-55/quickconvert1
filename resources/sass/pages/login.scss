@@ -1,0 +1,16 @@
+.container-right {
+    width: 50vw;
+    height: 100vh;
+}
+.login-form {
+    max-width: 500px;
+}
+@media (max-width: 910px) {
+    .login-image {
+        display: none;
+    }
+    .container-right {
+        width: 100vw;
+        height: 100vh;
+    }
+}
