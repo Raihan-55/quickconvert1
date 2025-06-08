@@ -1,6 +1,8 @@
 <nav class="navbar navbar-expand py-3">
     <div class="container-fluid d-flex flex-wrap align-items-center justify-content-between">
-        <a class="navbar-brand" href="#">Navbar</a>
+        <a class="navbar-brand" href="{{ url()->current() }}">
+            <img src="{{ asset('assets/images/logo1.png') }}" alt="Logo" height="70">
+        </a>
         <ul class="navbar-nav d-flex flex-wrap align-items-center">
 
             {{-- @if (session()->has('username'))

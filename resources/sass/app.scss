@@ -1,6 +1,4 @@
 @use "bootstrap/scss/bootstrap";
-@import url(pages/login.scss);
-@import url(pages/profile.scss);
 :root {
     /* Background Colors */
     --primary-color: #f14a00;
@@ -23,6 +21,10 @@
     padding: 0;
     font-family: var(--primary-font);
     font-size: 20px;
+}
+@media (max-width: 600px) {
+    * {
+    }
 }
 ::-webkit-scrollbar {
     width: 6px;
@@ -153,7 +155,7 @@ body {
 }
 .convert-title {
     font-family: var(--secondary-font);
-    font-size: 50px;
+    font-size: 50px !important;
     font-weight: 900;
     color: var(--primary-color);
     span {
@@ -169,12 +171,11 @@ body {
             background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 10 10"%3E%3Cpath fill="%23ffffff" d="M5 7L1 3h8L5 7z"%3E%3C/path%3E%3C/svg%3E'); /* Gambar panah putih */
             background-repeat: no-repeat;
             background-position: right 10px center; /* Posisi panah */
-            font-size: 50px;
+            font-size: 50px !important;
             transition: width 0.3s ease;
             option {
                 color: black; // saat dropdown terbuka, option tetap hitam untuk keterbacaan
             }
-
             &:focus {
                 outline: none;
                 box-shadow: none;
@@ -197,6 +198,7 @@ body {
             outline: none;
         }
     }
+
     .form-control {
         width: 60%;
         &:focus {
@@ -205,12 +207,31 @@ body {
             border: none; // Menghilangkan border saat fokus
         }
     }
+
     .form-select {
         width: 40%;
         &:focus {
             outline: none; // Menghilangkan border saat fokus
             box-shadow: none; // Menghilangkan efek bayangan saat fokus
             border: none; // Menghilangkan border saat fokus
+        }
+    }
+
+    // Tambahan: atur input-group agar berubah layout saat layar kecil
+    .input-group.flex-nowrap {
+        @media (max-width: 640px) {
+            flex-direction: column;
+            align-items: stretch;
+
+            .form-control,
+            .form-select {
+                width: 100%;
+                border-radius: 0.375rem !important;
+            }
+
+            .form-select {
+                margin-top: 0.5rem;
+            }
         }
     }
 }
@@ -224,12 +245,3 @@ body {
         border-bottom: 1px solid var(--black-color);
     }
 }
-
-.login-image {
-    width: 50vw;
-    height: 100vh;
-    background-color: var(--primary-color);
-}
-
-
-

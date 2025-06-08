@@ -38,20 +38,27 @@ class ConverterController extends Controller
                 $request->fromUnit,
                 $request->toUnit
             );
-            function format_significant($number, $significantFigures = 5, $decimal = ',', $thousands = '.')
+            function format_significant($number, $significantFigures = null, $decimal = ',')
             {
                 if ($number == 0) return '0';
 
-                $digits = -floor(log10(abs($number))) + ($significantFigures - 1);
-                $rounded = round($number, $digits);
-                $formatted = number_format($rounded, $digits, $decimal, $thousands);
+                // Ubah ke string normal
+                $str = (string) $number;
 
-                // Opsional: hapus trailing nol dan koma jika tidak perlu
-                $formatted = rtrim(rtrim($formatted, '0'), $decimal);
+                // Deteksi notasi ilmiah dan ubah ke format desimal jika perlu
+                if (stripos($str, 'e') !== false) {
+                    $str = rtrim(rtrim(number_format($number, 16, '.', ''), '0'), '.');
+                }
 
-                return $formatted;
+                // Ganti titik desimal jika diminta
+                if ($decimal !== '.') {
+                    $str = str_replace('.', $decimal, $str);
+                }
+
+                return $str;
             }
-            $formattedResult = format_significant($result, 5); // hasil: misalnya 123,46 atau 0,00012345
+
+            $formattedResult = format_significant($result, 10); // hasil: misalnya 123,46 atau 0,00012345
 
             session([
                 'fromValue'   => $request->fromValue,

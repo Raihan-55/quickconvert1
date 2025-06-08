@@ -57,6 +57,12 @@
                             </select>
                         </div>
                     </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="toggleAutoConvert" checked>
+                        <label class="form-check-label" for="toggleAutoConvert">
+                            Auto Convert
+                        </label>
+                    </div>
                     <!-- Loading indicator -->
                     <div id="loadingIndicator" class="text-center mt-3" style="display: none;">
                         <div class="spinner-border spinner-border-sm" role="status">
@@ -66,11 +72,9 @@
                     </div>
                     <div class="d-flex justify-content-center">
                         <button type="submit" class="btn btn-custom btn-orange text-center mt-3">Convert</button>
-                        <button type="button" id="clearBtn" class="btn btn-secondary text-center mt-3 ms-2">Clear</button>
+                        <button type="button" id="clearBtn" class="btn btn-custom btn-gray text-center mt-3 ms-2">Clear</button>
                     </div>
                 </form>
-
-
 
                 <!-- Menampilkan error jika ada -->
                 @if($errors->any())
@@ -91,252 +95,407 @@
             <p>
                 Website ini dihadirkan untuk memenuhi kebutuhan pelajar, profesional, maupun masyarakat umum yang memerlukan alat bantu konversi satuan yang cepat dan efisien.
             </p>
-
-            <!-- Unit Information -->
-            <div class="mt-4">
-                <h5>Supported Unit Types:</h5>
-                <ul class="list-unstyled">
-                    <li><strong>Length:</strong> {{ count($unitTypes['length']) }} units</li>
-                    <li><strong>Area:</strong> {{ count($unitTypes['area']) }} units</li>
-                    <li><strong>Volume:</strong> {{ count($unitTypes['volume']) }} units</li>
-                    <li><strong>Mass/Weight:</strong> {{ count($unitTypes['mass']) }} units</li>
-                    <li><strong>Speed:</strong> {{ count($unitTypes['speed']) }} units</li>
-                    <li><strong>Time:</strong> {{ count($unitTypes['time']) }} units</li>
-                    <li><strong>Angle:</strong> {{ count($unitTypes['angle']) }} units</li>
-                    <li><strong>Pressure:</strong> {{ count($unitTypes['pressure']) }} units</li>
-                    <li><strong>Energy:</strong> {{ count($unitTypes['energy']) }} units</li>
-                    <li><strong>Data Storage:</strong> {{ count($unitTypes['data']) }} units</li>
-                    <li><strong>Frequency:</strong> {{ count($unitTypes['frequency']) }} units</li>
-                </ul>
-            </div>
         </div>
     </div>
     <script>
+        /**
+         * Menyesuaikan lebar elemen <select> sesuai teks yang dipilih
+         */
         function resizeSelect(el) {
-            var temp = document.createElement("span");
-            temp.style.visibility = "hidden";
-            temp.style.whiteSpace = "nowrap";
-            temp.style.position = "absolute";
-            temp.style.fontFamily = window.getComputedStyle(el).fontFamily;
-            temp.style.fontSize = window.getComputedStyle(el).fontSize;
-            temp.style.fontWeight = window.getComputedStyle(el).fontWeight;
+            const temp = document.createElement("span");
+            const style = window.getComputedStyle(el);
+
+            // Set gaya span sementara
+            Object.assign(temp.style, {
+                visibility: "hidden"
+                , whiteSpace: "nowrap"
+                , position: "absolute"
+                , fontFamily: style.fontFamily
+                , fontSize: style.fontSize
+                , fontWeight: style.fontWeight
+            });
+
             temp.innerHTML = el.options[el.selectedIndex].text;
             document.body.appendChild(temp);
 
-            // Hitung lebar span, tambahkan padding + tombol dropdown indicator
-            el.style.width = (temp.offsetWidth + 60) + "px"; // 50px untuk aman
+            // Set lebar elemen select + ruang untuk icon dropdown
+            el.style.width = (temp.offsetWidth + 60) + "px";
             document.body.removeChild(temp);
         }
 
-        // Jalankan saat pertama kali load
-        resizeSelect(document.getElementById('dynamicSelect'));
+        /**
+         * Filter opsi unit berdasarkan jenis yang dipilih
+         */
+        function filterOptions(selectElement, selectedTypeId) {
+            let hasSelected = false;
 
-    </script>
-    <script>
+            Array.from(selectElement.options).forEach(option => {
+                const isMatch = option.getAttribute('data-type') === selectedTypeId;
+                option.hidden = !isMatch;
+
+                if (isMatch && !hasSelected) {
+                    option.selected = true;
+                    hasSelected = true;
+                }
+            });
+
+            if (!hasSelected) selectElement.selectedIndex = -1;
+        }
+
+        /**
+         * Jalankan saat DOM selesai dimuat
+         */
         document.addEventListener('DOMContentLoaded', function() {
             const typeSelect = document.getElementById('dynamicSelect');
-            document.getElementById('dynamicSelect').addEventListener('change', function() {
-                resizeSelect(this);
-            });
             const fromUnit = document.getElementById('fromUnit');
             const toUnit = document.getElementById('toUnit');
 
             function filterUnitsByType() {
                 const selectedTypeId = typeSelect.value;
-
                 filterOptions(fromUnit, selectedTypeId);
                 filterOptions(toUnit, selectedTypeId);
             }
 
-            function filterOptions(selectElement, selectedTypeId) {
-                let hasSelected = false;
-                Array.from(selectElement.options).forEach(option => {
-                    const match = option.getAttribute('data-type') === selectedTypeId;
-                    option.hidden = !match;
-                    if (match && !hasSelected) {
-                        option.selected = true;
-                        hasSelected = true;
-                    }
-                });
+            typeSelect.addEventListener('change', function() {
+                resizeSelect(this);
+                filterUnitsByType();
+            });
 
-                // Jika tidak ada yang cocok, kosongkan pilihan
-                if (!hasSelected) {
-                    selectElement.selectedIndex = -1;
-                }
-            }
-
-            // Event listener saat user memilih tipe
-            typeSelect.addEventListener('change', filterUnitsByType);
-
-            // Jalankan sekali saat pertama load
+            // Resize awal dan filter unit
+            resizeSelect(typeSelect);
             filterUnitsByType();
         });
 
     </script>
+
     <script>
-        // Data unit types dari PHP
+        // Unit type dari backend
         const unitTypes = @json($unitTypes);
         let autoConvertTimeout = null;
 
+        // Debug function untuk melihat apa yang terjadi
+        function debugLog(message, data = null) {
+            console.log(`[CONVERTER DEBUG] ${message}`, data);
+        }
+
+        /**
+         * Mengubah dropdown unit saat jenis diubah
+         */
         function changeUnitType() {
+            debugLog('changeUnitType called');
             const selectedType = document.getElementById('dynamicSelect').value;
             const fromUnit = document.getElementById('fromUnit');
             const toUnit = document.getElementById('toUnit');
             const convertTypeInput = document.getElementById('convertTypeInput');
 
+            debugLog('Selected type:', selectedType);
+
+            // Simpan nilai yang dipilih sebelumnya
+            const currentFromUnit = fromUnit.value;
+            const currentToUnit = toUnit.value;
+
             convertTypeInput.value = selectedType;
 
-            // Clear dropdown secara manual (bukan innerHTML)
-            while (fromUnit.options.length > 0) {
-                fromUnit.remove(0);
-            }
-            while (toUnit.options.length > 0) {
-                toUnit.remove(0);
-            }
+            // Hapus semua opsi
+            fromUnit.innerHTML = '';
+            toUnit.innerHTML = '';
 
             const units = unitTypes[selectedType];
-
             if (units) {
+                debugLog('Available units:', units);
                 for (const [code, name] of Object.entries(units)) {
                     const option1 = new Option(`${name} (${code})`, code);
                     const option2 = new Option(`${name} (${code})`, code);
-
                     option1.setAttribute('data-type', selectedType);
                     option2.setAttribute('data-type', selectedType);
-
-
                     fromUnit.add(option1);
                     toUnit.add(option2);
                 }
+
+                // Coba restore nilai sebelumnya jika masih tersedia
+                if (units[currentFromUnit]) {
+                    fromUnit.value = currentFromUnit;
+                }
+                if (units[currentToUnit]) {
+                    toUnit.value = currentToUnit;
+                }
             }
 
-            console.log('Dropdown fromUnit:', fromUnit.innerHTML);
-            console.log('Dropdown toUnit:', toUnit.innerHTML);
-
-            document.getElementById('toValue').value = '';
+            // Hanya clear hasil jika ini adalah perubahan user, bukan inisialisasi
+            if (!document.getElementById('isInitializing')) {
+                document.getElementById('toValue').value = '';
+            }
             hideAlerts();
         }
 
-
+        /**
+         * Melakukan konversi otomatis dengan debounce
+         */
         function autoConvert() {
-            // Clear previous timeout
-            if (autoConvertTimeout) {
-                clearTimeout(autoConvertTimeout);
+            debugLog('autoConvert called');
+            const toggle = document.getElementById('toggleAutoConvert');
+            if (toggle && !toggle.checked) {
+                debugLog('Auto convert disabled');
+                return;
             }
 
-            // Set new timeout for debouncing
+            // Perbaiki duplikasi clearTimeout
+            clearTimeout(autoConvertTimeout);
+
             autoConvertTimeout = setTimeout(() => {
                 const fromValue = document.getElementById('fromValue').value;
                 const fromUnit = document.getElementById('fromUnit').value;
                 const toUnit = document.getElementById('toUnit').value;
 
-                if (fromValue && fromUnit && toUnit && fromValue !== '') {
-                    showLoading(true);
-                    hideAlerts();
+                debugLog('Auto convert values:', {
+                    fromValue
+                    , fromUnit
+                    , toUnit
+                });
 
-                    // Prepare form data
-                    const formData = new FormData();
-                    formData.append('fromValue', fromValue);
-                    formData.append('fromUnit', fromUnit);
-                    formData.append('toUnit', toUnit);
-                    formData.append('_token', '{{ csrf_token() }}');
-
-                    fetch('{{ route("convert") }}', {
-                            method: 'POST'
-                            , headers: {
-                                'X-Requested-With': 'XMLHttpRequest'
-                            , }
-                            , body: formData
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            showLoading(false);
-                            if (data.success) {
-                                document.getElementById('toValue').value = data.result;
-                                showSuccess(`${data.fromValue} ${data.fromUnit} = ${data.result} ${data.toUnit}`);
-                            } else {
-                                showError(data.error || 'Conversion failed');
-                                document.getElementById('toValue').value = '';
-                            }
-                        })
-                        .catch(error => {
-                            showLoading(false);
-                            showError('Network error occurred');
-                            console.error('Error:', error);
-                        });
+                if (fromValue && fromUnit && toUnit) {
+                    performConversion(fromValue, fromUnit, toUnit);
                 }
-            }, 500); // 500ms delay for debouncing
+            }, 500);
+        }
+
+        /**
+         * Fungsi terpisah untuk melakukan konversi
+         */
+        function performConversion(fromValue, fromUnit, toUnit) {
+            debugLog('performConversion called', {
+                fromValue
+                , fromUnit
+                , toUnit
+            });
+            showLoading(true);
+            hideAlerts();
+
+            const formData = new FormData();
+            formData.append('fromValue', fromValue);
+            formData.append('fromUnit', fromUnit);
+            formData.append('toUnit', toUnit);
+
+            // Coba ambil CSRF token dari beberapa sumber
+            let csrfToken = null;
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            if (csrfMeta) {
+                csrfToken = csrfMeta.getAttribute('content');
+            }
+            if (!csrfToken) {
+                const csrfInput = document.querySelector('input[name="_token"]');
+                if (csrfInput) {
+                    csrfToken = csrfInput.value;
+                }
+            }
+            if (!csrfToken) {
+                csrfToken = '{{ csrf_token() }}';
+            }
+
+            formData.append('_token', csrfToken);
+            debugLog('CSRF Token:', csrfToken);
+
+            const convertUrl = '{{ route("convert") }}';
+            debugLog('Convert URL:', convertUrl);
+
+            fetch(convertUrl, {
+                    method: 'POST'
+                    , headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                        , 'Accept': 'application/json'
+                    , }
+                    , body: formData
+                })
+                .then(response => {
+                    debugLog('Response status:', response.status);
+                    debugLog('Response headers:', Object.fromEntries(response.headers));
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    debugLog('Response data:', data);
+                    showLoading(false);
+                    if (data.success) {
+                        document.getElementById('toValue').value = data.result;
+                        showSuccess(`${data.fromValue} ${data.fromUnit} = ${data.result} ${data.toUnit}`);
+                    } else {
+                        showError(data.error || 'Conversion failed');
+                        document.getElementById('toValue').value = '';
+                    }
+                })
+                .catch(error => {
+                    debugLog('Fetch error:', error);
+                    showLoading(false);
+                    showError('Network error occurred: ' + error.message);
+                    console.error('Conversion error:', error);
+                });
         }
 
         function showLoading(show) {
+            debugLog('showLoading:', show);
             const loadingIndicator = document.getElementById('loadingIndicator');
-            loadingIndicator.style.display = show ? 'block' : 'none';
+            if (loadingIndicator) {
+                loadingIndicator.style.display = show ? 'block' : 'none';
+            } else {
+                debugLog('Loading indicator not found!');
+            }
         }
 
         function hideAlerts() {
             const errorAlert = document.getElementById('errorAlert');
             const resultAlert = document.getElementById('resultAlert');
+            const dynamicError = document.getElementById('dynamicError');
+            const dynamicSuccess = document.getElementById('dynamicSuccess');
+
             if (errorAlert) errorAlert.style.display = 'none';
             if (resultAlert) resultAlert.style.display = 'none';
+            if (dynamicError) dynamicError.remove();
+            if (dynamicSuccess) dynamicSuccess.remove();
         }
 
-        // function showError(message) {
-        //     hideAlerts();
-        //     const errorHtml = `
-        //         <div class="alert alert-danger mt-3" id="dynamicError">
-        //             ${message}
-        //             <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
-        //         </div>
-        //     `;
-        //     document.querySelector('.convert-form').insertAdjacentHTML('afterend', errorHtml);
-        // }
+        function showError(message) {
+            debugLog('showError:', message);
+            hideAlerts();
+            const errorHtml = `
+        <div class="alert alert-danger mt-3" id="dynamicError">
+            ${message}
+            <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+        </div>
+    `;
+            const formElement = document.querySelector('.convert-form');
+            if (formElement) {
+                formElement.insertAdjacentHTML('afterend', errorHtml);
+            } else {
+                debugLog('Form element not found for error display');
+            }
+        }
 
-        // function showSuccess(message) {
-        //     hideAlerts();
-        //     const successHtml = `
-        //         <div class="alert alert-success mt-3" id="dynamicSuccess">
-        //             <strong>Conversion Result:</strong><br>
-        //             <small class="text-muted">${message}</small>
-        //         </div>
-        //     `;
-        //     document.querySelector('.convert-form').insertAdjacentHTML('afterend', successHtml);
-        // }
+        function showSuccess(message) {
+            debugLog('showSuccess:', message);
+            hideAlerts();
+
+            // Simpan ke history
+            const fromValue = document.getElementById('fromValue').value;
+            const fromUnit = document.getElementById('fromUnit').value;
+            const toUnit = document.getElementById('toUnit').value;
+            const toValue = document.getElementById('toValue').value;
+
+            if (typeof saveToHistory === 'function') {
+                saveToHistory(fromValue, fromUnit, toValue, toUnit);
+            }
+
+            const successHtml = `
+        <div class="alert alert-success mt-3" id="dynamicSuccess">
+            <strong>Conversion Result:</strong><br>
+            <small class="text-muted">${message}</small>
+        </div>
+    `;
+            const formElement = document.querySelector('.convert-form');
+            if (formElement) {
+                formElement.insertAdjacentHTML('afterend', successHtml);
+            } else {
+                debugLog('Form element not found for success display');
+            }
+        }
 
         function clearForm() {
+            debugLog('clearForm called');
             document.getElementById('fromValue').value = '';
             document.getElementById('toValue').value = '';
             document.getElementById('dynamicSelect').value = 'length';
             changeUnitType();
             hideAlerts();
-
-            // Remove dynamic alerts
-            const dynamicError = document.getElementById('dynamicError');
-            const dynamicSuccess = document.getElementById('dynamicSuccess');
-            if (dynamicError) dynamicError.remove();
-            if (dynamicSuccess) dynamicSuccess.remove();
         }
 
-        // Event listeners
-        document.getElementById('fromValue').addEventListener('input', autoConvert);
-        document.getElementById('fromUnit').addEventListener('change', autoConvert);
-        document.getElementById('toUnit').addEventListener('change', autoConvert);
-        document.getElementById('clearBtn').addEventListener('click', clearForm);
-
-        // Prevent form submission if auto-convert is working
-        document.getElementById('converterForm').addEventListener('submit', function(e) {
-            if (document.getElementById('loadingIndicator').style.display !== 'none') {
-                e.preventDefault();
-                return false;
-            }
-        });
-
-        // Initialize with current selection if page was refreshed with session data
+        // Event listeners yang diperbaiki
         document.addEventListener('DOMContentLoaded', function() {
+            debugLog('DOM Content Loaded');
+
+            // Periksa apakah semua elemen ada
+            const elements = {
+                converterForm: document.getElementById('converterForm')
+                , fromValue: document.getElementById('fromValue')
+                , fromUnit: document.getElementById('fromUnit')
+                , toUnit: document.getElementById('toUnit')
+                , clearBtn: document.getElementById('clearBtn')
+                , dynamicSelect: document.getElementById('dynamicSelect')
+                , toggleAutoConvert: document.getElementById('toggleAutoConvert')
+            };
+
+            debugLog('Elements check:', elements);
+
+            // Tandai bahwa ini adalah inisialisasi
+            const initFlag = document.createElement('div');
+            initFlag.id = 'isInitializing';
+            initFlag.style.display = 'none';
+            document.body.appendChild(initFlag);
+
+            // Setup form submission handler yang diperbaiki
+            if (elements.converterForm) {
+                elements.converterForm.addEventListener('submit', function(e) {
+                    debugLog('Form submit event triggered');
+                    e.preventDefault(); // Selalu prevent default submit
+
+                    const loadingElement = document.getElementById('loadingIndicator');
+                    const isLoading = loadingElement && loadingElement.style.display !== 'none';
+                    if (isLoading) {
+                        debugLog('Conversion already in progress');
+                        alert('Please wait for the current conversion to finish.');
+                        return;
+                    }
+
+                    // Lakukan konversi manual saat tombol ditekan
+                    const fromValue = document.getElementById('fromValue').value;
+                    const fromUnit = document.getElementById('fromUnit').value;
+                    const toUnit = document.getElementById('toUnit').value;
+
+                    debugLog('Manual conversion triggered:', {
+                        fromValue
+                        , fromUnit
+                        , toUnit
+                    });
+
+                    if (fromValue && fromUnit && toUnit) {
+                        performConversion(fromValue, fromUnit, toUnit);
+                    } else {
+                        debugLog('Missing required fields');
+                        showError('Please fill in all required fields.');
+                    }
+                });
+                debugLog('Form submit listener attached');
+            } else {
+                debugLog('ERROR: Converter form not found!');
+            }
+
+            // Setup auto convert listeners
+            if (elements.fromValue) {
+                elements.fromValue.addEventListener('input', autoConvert);
+                debugLog('fromValue input listener attached');
+            }
+            if (elements.fromUnit) {
+                elements.fromUnit.addEventListener('change', autoConvert);
+                debugLog('fromUnit change listener attached');
+            }
+            if (elements.toUnit) {
+                elements.toUnit.addEventListener('change', autoConvert);
+                debugLog('toUnit change listener attached');
+            }
+            if (elements.clearBtn) {
+                elements.clearBtn.addEventListener('click', clearForm);
+                debugLog('clearBtn click listener attached');
+            }
+
+            // Inisialisasi unit type
             changeUnitType();
+
+            // Restore session data jika ada
             @if(session('fromUnit'))
-            // Find the unit type for the session unit
             const sessionFromUnit = '{{ session('
             fromUnit ') }}';
+            debugLog('Restoring session fromUnit:', sessionFromUnit);
             for (const [type, units] of Object.entries(unitTypes)) {
                 if (units.hasOwnProperty(sessionFromUnit)) {
                     document.getElementById('dynamicSelect').value = type;
@@ -345,15 +504,27 @@
                 }
             }
             @endif
+
+            // Hapus flag inisialisasi
+            setTimeout(() => {
+                const flag = document.getElementById('isInitializing');
+                if (flag) flag.remove();
+                debugLog('Initialization complete');
+            }, 100);
+
+            debugLog('All event listeners setup complete');
         });
 
     </script>
+
     <script>
         const historyKey = 'conversionHistory';
 
+        /**
+         * Simpan data konversi ke localStorage
+         */
         function saveToHistory(fromValue, fromUnit, toValue, toUnit) {
             const history = JSON.parse(localStorage.getItem(historyKey)) || [];
-
             const entry = {
                 id: Date.now()
                 , fromValue
@@ -361,13 +532,15 @@
                 , toValue
                 , toUnit
             };
-
-            history.unshift(entry); // tambahkan ke awal
-            if (history.length > 20) history.pop(); // maksimal 20 entri
+            history.unshift(entry);
+            if (history.length > 20) history.pop(); // Batasi 20 entri
             localStorage.setItem(historyKey, JSON.stringify(history));
             renderHistory();
         }
 
+        /**
+         * Render daftar riwayat konversi
+         */
         function renderHistory() {
             const container = document.getElementById('historyContainer');
             const history = JSON.parse(localStorage.getItem(historyKey)) || [];
@@ -378,7 +551,7 @@
                 item.className = "result-convert mb-3 position-relative pe-4 me-3";
                 item.style.borderBottom = "1px solid black";
                 item.innerHTML = `
-                <button type="button" class="btn position-absolute top-0 end-0 p-0" aria-label="Delete" title="Hapus history" onclick="deleteHistoryItem(${entry.id})">
+                <button type="button" class="btn position-absolute top-0 end-0 p-0" title="Hapus history" onclick="deleteHistoryItem(${entry.id})">
                     <i class="bi bi-trash3"></i>
                 </button>
                 <h5>${entry.toValue} (${entry.toUnit})</h5>
@@ -400,30 +573,10 @@
             renderHistory();
         }
 
-        function showSuccess(message) {
-            hideAlerts();
-
-            // Ambil data dari form
-            const fromValue = document.getElementById('fromValue').value;
-            const fromUnit = document.getElementById('fromUnit').value;
-            const toUnit = document.getElementById('toUnit').value;
-            const toValue = document.getElementById('toValue').value;
-
-            // Simpan ke history
-            saveToHistory(fromValue, fromUnit, toValue, toUnit);
-
-            //     const successHtml = `
-            //     <div class="alert alert-success mt-3" id="dynamicSuccess">
-            //         <strong>Conversion Result:</strong><br>
-            //         <small class="text-muted">${message}</small>
-            //     </div>
-            // `;
-            document.querySelector('.convert-form').insertAdjacentHTML('afterend', successHtml);
-        }
-
         // Inisialisasi history saat halaman dimuat
         document.addEventListener('DOMContentLoaded', renderHistory);
 
     </script>
+
 
 </x-layout>
