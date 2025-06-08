@@ -88,7 +88,7 @@
             </div>
         </div>
 
-        <div class="convert-text p-5">
+        <div class="convert-text p-4 p-sm-5">
             <p>
                 <strong>QuickConvert</strong> adalah platform berbasis web yang dikembangkan untuk memudahkan proses konversi satuan secara cepat, akurat, dan praktis. Melalui antarmuka yang sederhana dan responsif, pengguna dapat dengan mudah memasukkan nilai, memilih satuan asal dan tujuan, lalu memperoleh hasil konversi dalam waktu singkat.
             </p>
